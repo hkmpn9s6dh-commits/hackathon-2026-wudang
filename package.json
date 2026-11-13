@@ -1,0 +1,29 @@
+{
+  "name": "chaoyuan",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "license": "MIT",
+  "description": "朝元 — 一口炁，上金顶。武当数字文创互动作品。",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview --port 4321 --strictPort",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "e2e": "node scripts/e2e.mjs",
+    "shot": "node scripts/shot.mjs",
+    "measure": "node scripts/measure-ui.mjs",
+    "fonts": "py -3 scripts/subset-fonts.py",
+    "verify": "bash scripts/verify.sh"
+  },
+  "devDependencies": {
+    "playwright-core": "^1.56.1",
+    "typescript": "6.0.3",
+    "vite": "8.3.7",
+    "vitest": "^3.2.4"
+  },
+  "engines": {
+    "node": ">=20.19"
+  }
+}
