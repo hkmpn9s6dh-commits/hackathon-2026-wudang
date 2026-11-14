@@ -85,8 +85,9 @@ body {
 
 /* 山腰上一方小印，像画上盖的收藏章 */
 .seal--mountain {
-  left: 36.2vmin;
-  top: 56vmin;
+  /* 跟着山走，不跟视口走：竖屏和横屏都落在同一条坡上 */
+  left: 33%;
+  top: 57%;
   padding: 1vmin 0.8vmin;
   font-size: clamp(9px, 1.25vmin, 13px);
   opacity: 0.55;
@@ -228,6 +229,17 @@ body {
 .ticks li.on {
   background: var(--seal);
   transform: scaleY(1.5);
+}
+
+@media (max-width: 520px) {
+  /* 窄屏上把最下面那行小字收掉，右上角才不挤 */
+  .meta {
+    display: none;
+  }
+  /* 竖排题名占掉右边一条，副题要让开，不然两个字会叠在一起 */
+  .subtitle {
+    right: 21vmin;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

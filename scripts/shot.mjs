@@ -33,7 +33,7 @@ async function hold(page, ms) {
 
 async function main() {
   await mkdir(out, { recursive: true });
-  const server = await startServer(resolve(root, 'dist'), 4327);
+  const server = await startServer(resolve(root, 'dist'), Number(process.env.CHAOYUAN_PORT ?? 4327));
   const browser = await chromium.launch({ executablePath: CHROME });
 
   try {
