@@ -92,14 +92,13 @@ async function main() {
           readoutFoot: hit(a, c),
           verseFoot: hit(d, c) || hit(d, e),
           verseHint: hit(d, e),
-          verseReadout: hit(d, a),
           inside: [a, b, c, d, e].every(
             (r) => !r || (r.left >= -1 && r.right <= window.innerWidth + 1 && r.top >= -1 && r.bottom <= window.innerHeight + 1),
           ),
         };
       });
       const overlapOk =
-        !overlap.readoutTitle && !overlap.readoutFoot && !overlap.verseFoot && !overlap.verseReadout && overlap.inside;
+        !overlap.readoutTitle && !overlap.readoutFoot && !overlap.verseFoot && !overlap.verseHint && overlap.inside;
       if (!overlapOk) failed += 1;
       rows.push({ vp: vp.name, id: 'layout', note: '文字块不压不越界', size: 0, min: 0, ok: overlapOk, detail: JSON.stringify(overlap) });
 

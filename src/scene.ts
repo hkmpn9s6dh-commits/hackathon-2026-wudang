@@ -11,6 +11,15 @@ import { mulberry32, range } from './rng';
 import type { Theme } from './theme';
 
 const SAMPLES = 321;
+
+function hexToRgb(hex: string): string {
+  const v = hex.replace('#', '');
+  const n = v.length === 3 ? v.split('').map((c) => c + c).join('') : v;
+  const r = Number.parseInt(n.slice(0, 2), 16);
+  const g = Number.parseInt(n.slice(2, 4), 16);
+  const b = Number.parseInt(n.slice(4, 6), 16);
+  return `${r},${g},${b}`;
+}
 const SEED = 0x5a17c0de;
 
 interface Range {
@@ -119,16 +128,18 @@ export class Scene {
     c.scale(dpr, dpr);
 
     this.#ground(c, w, h);
-    for (let i = 0; i < this.#ranges.length; i += 1) {
-      this.#range(c, i, w, h);
-      if (this.#theme.id === 'paper') {
-        if (i === 1) this.#mist(c, w, h, 0.655, 0.08, 0.55);
-        if (i === 2) this.#mist(c, w, h, 0.772, 0.075, 0.42);
-      }
-    }
+    // 远山只留两层极淡的，给纵深，不抢近峰
+    for (let i = 0; i < this.#ranges.length; i += 1) this.#range(c, i, w, h);
+    this.#massif(c, w, h);
     this.#hall(c, w, h);
     this.#ledge(c, w, h);
     this.#birds(c, w, h);
+    const scrim = c.createLinearGradient(0, h * 0.74, 0, h);
+    scrim.addColorStop(0, 'rgba(246,241,231,0)');
+    scrim.addColorStop(0.6, 'rgba(246,241,231,0.5)');
+    scrim.addColorStop(1, 'rgba(246,241,231,0.86)');
+    c.fillStyle = scrim;
+    c.fillRect(0, h * 0.74, w, h * 0.26);
     this.#grain(c, w, h, ctx);
     return off;
   }
@@ -161,6 +172,18 @@ export class Scene {
       c.fillRect(0, 0, w, h);
     }
 
+    if (t.render === 'flat') {
+      // 绢纹：横向的细丝。一条一条画，密度不均，是织出来的，不是贴图
+      const silkRng = mulberry32(SEED ^ 0x51c0);
+      c.save();
+      for (let y = 0; y < h; y += 1) {
+        const a = t.silk * (0.35 + silkRng() * 0.9);
+        c.fillStyle = `rgba(120,104,76,${a * 0.12})`;
+        c.fillRect(0, y, w, 1);
+      }
+      c.restore();
+    }
+
     // 金顶上方那抹光
     const sky = c.createRadialGradient(w * 0.5, h * 0.44, 0, w * 0.5, h * 0.44, h * 0.5);
     sky.addColorStop(0, `rgba(${t.glow},${t.id === 'bronze' ? 0.16 : 0.1})`);
@@ -186,6 +209,38 @@ export class Scene {
     for (const p of pts) c.lineTo(p[0], p[1]);
     c.lineTo(pts[pts.length - 1]?.[0] ?? w, h + 10);
     c.closePath();
+    if (t.render === 'flat' && t.id !== 'bronze') {
+      // 青绿是平涂：一块石青、一块石绿、一块赭石，各自干净，不晕
+      const color = t.rangeColors?.[layer] ?? t.range;
+      const solid = [0.52, 0.6, 0.68][layer] ?? 0.5;
+      c.fillStyle = `rgba(${color},${solid})`;
+      c.fill();
+
+      // 山脚淡下去：矿物色越远越薄，不是擦掉
+      c.save();
+      c.clip();
+      const foot = c.createLinearGradient(0, h * (r.baseY - 0.02), 0, h * (r.baseY + 0.18));
+      foot.addColorStop(0, `rgba(${hexToRgb(t.fade)},0)`);
+      foot.addColorStop(0.5, `rgba(${hexToRgb(t.fade)},0.5)`);
+      foot.addColorStop(1, `rgba(${hexToRgb(t.fade)},0.97)`);
+      c.fillStyle = foot;
+      c.fillRect(0, h * (r.baseY - 0.02), w, h * 0.22);
+      c.restore();
+
+      // 勾线：赭墨沿脊走一道。青绿靠这条线立骨
+      c.beginPath();
+      pts.forEach((pp, i) => {
+        if (i === 0) c.moveTo(pp[0], pp[1]);
+        else c.lineTo(pp[0], pp[1]);
+      });
+      c.strokeStyle = `rgba(${t.contour},${0.3 + layer * 0.09})`;
+      c.lineWidth = layer === 2 ? 1.6 : 1.05;
+      c.lineJoin = 'round';
+      c.stroke();
+      c.restore();
+      return;
+    }
+
     c.fillStyle = `rgba(${t.range},${r.alpha})`;
     c.fill();
 
@@ -223,9 +278,11 @@ export class Scene {
     if (t.fadeMode === 'erase') {
       c.globalCompositeOperation = 'destination-out';
       const fade = c.createLinearGradient(0, top, 0, h * (r.baseY + 0.02));
+      // 最后必须擦到 1：只擦掉一半会在山脚留下一条横线
       fade.addColorStop(0, 'rgba(0,0,0,0)');
-      fade.addColorStop(0.55, 'rgba(0,0,0,0)');
-      fade.addColorStop(1, 'rgba(0,0,0,0.55)');
+      fade.addColorStop(0.35, 'rgba(0,0,0,0)');
+      fade.addColorStop(0.75, 'rgba(0,0,0,0.7)');
+      fade.addColorStop(1, 'rgba(0,0,0,1)');
       c.fillStyle = fade;
       c.fillRect(0, top, w, h);
     } else {
@@ -250,6 +307,156 @@ export class Scene {
     g.addColorStop(1, `rgba(${rgb},0)`);
     c.fillStyle = g;
     c.fillRect(0, h * at, w, h * height);
+  }
+
+  /**
+   * 近山。坐标是手写的，不是随机生成的。
+   *
+   * 这是整个作品里唯一一处「被安排过」的形状：左肩、主峰、右侧断崖、下坡、山脚。
+   * 随机生成的圆包只能画丘陵；有峰有崖，才有人会在上面站。
+   */
+  #massif(c: CanvasRenderingContext2D, w: number, h: number): void {
+    const t = this.#theme;
+    const ink = t.id === 'bronze' ? '226,186,116' : t.range;
+    const P = (x: number, y: number): [number, number] => [x * w, y * h];
+
+    // 一座孤峰：两侧都落到云里，不在画面里连成一条山脉。
+    // 峰尖要尖（0.5, 0.6），右肩陡、左肩缓——对称的锥是最不像山的东西。
+    const outline: [number, number][] = [
+      P(0.196, 0.952),
+      P(0.238, 0.9),
+      P(0.268, 0.868),
+      P(0.292, 0.879),
+      P(0.316, 0.842),
+      P(0.344, 0.856),
+      P(0.372, 0.806),
+      P(0.404, 0.796),
+      P(0.428, 0.752),
+      P(0.452, 0.706),
+      P(0.474, 0.652),
+      P(0.5, 0.602),
+      P(0.518, 0.638),
+      P(0.532, 0.7),
+      P(0.556, 0.756),
+      P(0.604, 0.784),
+      P(0.66, 0.832),
+      P(0.73, 0.884),
+      P(0.806, 0.952),
+    ];
+
+    const path = (): void => {
+      c.beginPath();
+      const first = outline[0]!;
+      c.moveTo(first[0], first[1]);
+      for (let i = 1; i < outline.length; i += 1) {
+        const a = outline[i - 1]!;
+        const b = outline[i]!;
+        c.quadraticCurveTo((a[0] + b[0]) / 2, (a[1] + b[1]) / 2, b[0], b[1]);
+      }
+      c.lineTo(w * 0.802, h * 1.06);
+      c.lineTo(w * 0.2, h * 1.06);
+      c.closePath();
+    };
+
+    c.save();
+    path();
+    const g = c.createLinearGradient(0, h * 0.58, 0, h * 1.0);
+    g.addColorStop(0, `rgba(${ink},${t.id === 'bronze' ? 0.12 : 0.4})`);
+    g.addColorStop(0.3, `rgba(${ink},${t.id === 'bronze' ? 0.06 : 0.22})`);
+    g.addColorStop(0.72, `rgba(${ink},${t.id === 'bronze' ? 0.02 : 0.08})`);
+    g.addColorStop(1, `rgba(${ink},${t.id === 'bronze' ? 0 : 0.01})`);
+    c.fillStyle = g;
+    c.fill();
+
+    // 8 bit 渐变会出横条带；用一层细噪点压掉，顺便当纸的颗粒
+    c.save();
+    c.clip();
+    const bandRng = mulberry32(SEED ^ 0x2b17);
+    for (let i = 0; i < 2600; i += 1) {
+      const px = bandRng() * w;
+      const py = h * (0.58 + bandRng() * 0.46);
+      c.fillStyle = `rgba(${ink},${bandRng() * 0.05})`;
+      c.fillRect(px, py, 1.4, 1.4);
+    }
+    c.restore();
+
+    // 左侧受光面：光从左上来，坡才不是一块平涂
+    c.save();
+    c.clip();
+    const lit = c.createLinearGradient(w * 0.1, h * 0.62, w * 0.46, h * 0.86);
+    lit.addColorStop(0, `rgba(${t.glow},${t.id === 'bronze' ? 0.03 : 0.22})`);
+    lit.addColorStop(1, `rgba(${t.glow},0)`);
+    c.fillStyle = lit;
+    c.fillRect(0, h * 0.55, w, h * 0.5);
+    c.restore();
+
+    // 山体里压几团墨：一块平三角是图标，有浓淡才是山
+    const massRng = mulberry32(SEED ^ 0x6d21);
+    for (let i = 0; i < 7; i += 1) {
+      const t0 = massRng();
+      const cx = w * (0.28 + massRng() * 0.44);
+      const cy = h * (0.68 + t0 * 0.22);
+      const rr = w * (0.05 + massRng() * 0.13);
+      const wg = c.createRadialGradient(cx, cy, 0, cx, cy, rr);
+      wg.addColorStop(0, `rgba(${ink},${0.06 + massRng() * 0.1})`);
+      wg.addColorStop(1, `rgba(${ink},0)`);
+      c.save();
+      c.clip();
+      c.fillStyle = wg;
+      c.fillRect(cx - rr, cy - rr, rr * 2, rr * 2);
+      c.restore();
+    }
+
+    // 背光面：峰右一侧压一道，山才有体积
+    c.save();
+    c.clip();
+    const shade = c.createLinearGradient(w * 0.52, h * 0.6, w * 0.74, h * 0.9);
+    shade.addColorStop(0, `rgba(${ink},${t.id === 'bronze' ? 0.04 : 0.16})`);
+    shade.addColorStop(1, `rgba(${ink},0)`);
+    c.fillStyle = shade;
+    c.fillRect(w * 0.45, h * 0.55, w * 0.4, h * 0.5);
+    c.restore();
+
+    // 脊线：只描山腰以上，两端渐隐
+    for (let i = 3; i < outline.length - 3; i += 1) {
+      const a = outline[i - 1]!;
+      const b = outline[i]!;
+      const edge = Math.min(i - 3, outline.length - 3 - i) / 6;
+      c.beginPath();
+      c.moveTo(a[0], a[1]);
+      c.lineTo(b[0], b[1]);
+      c.strokeStyle = `rgba(${ink},${(t.id === 'bronze' ? 0.5 : 0.42) * Math.min(1, 0.2 + edge)})`;
+      c.lineWidth = 1.3;
+      c.lineCap = 'round';
+      c.stroke();
+    }
+
+    // 松：三四株，只到膝盖高。给人一个尺度，山才有那么大
+    const tree = (x: number, y: number, s: number): void => {
+      c.fillStyle = `rgba(${ink},0.5)`;
+      c.strokeStyle = `rgba(${ink},0.5)`;
+      c.lineWidth = Math.max(0.9, s * 0.12);
+      c.beginPath();
+      c.moveTo(x, y);
+      c.lineTo(x, y - s * 0.5);
+      c.stroke();
+      // 针叶：三层小三角，一层比一层窄
+      for (let k = 0; k < 3; k += 1) {
+        const top = y - s * (0.38 + k * 0.22);
+        const half = s * (0.34 - k * 0.075);
+        c.beginPath();
+        c.moveTo(x, top - s * 0.3);
+        c.lineTo(x + half, top);
+        c.lineTo(x - half, top);
+        c.closePath();
+        c.fill();
+      }
+    };
+    tree(w * 0.39, h * 0.79, h * 0.026);
+    tree(w * 0.412, h * 0.776, h * 0.019);
+    tree(w * 0.588, h * 0.782, h * 0.022);
+    tree(w * 0.61, h * 0.797, h * 0.016);
+    c.restore();
   }
 
   #hall(c: CanvasRenderingContext2D, w: number, h: number): void {
@@ -381,7 +588,7 @@ export class Scene {
     const pattern = target.createPattern(tile, 'repeat');
     if (!pattern) return;
     c.save();
-    c.globalAlpha = this.#theme.grain;
+    c.globalAlpha = this.#theme.grain * 1.4;
     c.fillStyle = pattern;
     c.fillRect(0, 0, w, h);
     c.restore();

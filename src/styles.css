@@ -166,42 +166,18 @@ body {
   line-height: 1.4;
 }
 
-/* 歌诀：落款的位置。靠左下，不居中——居中一行小字是海报，不是题跋 */
+/* 歌诀：回到中间，就在白话下面一行。注意力在中间，字就得在中间 */
 .verse {
-  position: absolute;
-  left: 6vmin;
-  bottom: 13.5vmin;
-  width: min(30rem, 58vw);
-  margin: 0;
-  text-align: left;
+  position: static;
+  width: auto;
+  margin: 1.5vmin 0 0;
+  text-align: center;
   font-size: clamp(14px, 1.9vmin, 18px);
   letter-spacing: 0.1em;
   line-height: 1.75;
   color: var(--text-soft);
 }
 
-.signature {
-  position: absolute;
-  left: 6vmin;
-  bottom: 6.4vmin;
-  display: flex;
-  align-items: center;
-  gap: 1.2vmin;
-  margin: 0;
-  font-size: clamp(11px, 1.35vmin, 14px);
-  letter-spacing: 0.28em;
-  color: var(--text-faint);
-}
-
-.signature i {
-  display: block;
-  width: 2.2vmin;
-  height: 2.2vmin;
-  min-width: 12px;
-  min-height: 12px;
-  background: var(--seal);
-  opacity: 0.85;
-}
 
 .foot {
   position: absolute;
@@ -278,12 +254,7 @@ body {
     right: 21vmin;
   }
   /* 窄屏上歌诀会折两行，得抬起来给提示让位；落款是装饰，收掉 */
-  .verse {
-    bottom: 22vmin;
-  }
-  .signature {
-    display: none;
-  }
+
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -303,9 +274,7 @@ body {
   .verse {
     bottom: 12vmin;
   }
-  .signature {
-    bottom: 5vmin;
-  }
+
   .title,
   .subtitle,
   .meta {
