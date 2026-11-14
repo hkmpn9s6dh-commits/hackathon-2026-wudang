@@ -18,7 +18,8 @@ const root = resolve(fileURLToPath(new URL('.', import.meta.url)), '..');
 const CHROME =
   process.env.CHAOYUAN_CHROME ??
   'C:/Users/张一/AppData/Local/ms-playwright/chromium-1248/chrome-win64/chrome.exe';
-const out = resolve(root, 'shots');
+const out = resolve(root, process.env.CHAOYUAN_SHOT_DIR ?? 'shots');
+const DPR = Number(process.env.CHAOYUAN_SHOT_DPR ?? 2);
 
 const DESKTOP = { width: 1440, height: 900 };
 const PHONE = { width: 430, height: 932 };
@@ -36,7 +37,7 @@ async function main() {
   const browser = await chromium.launch({ executablePath: CHROME });
 
   try {
-    const page = await browser.newPage({ viewport: DESKTOP, deviceScaleFactor: 2 });
+    const page = await browser.newPage({ viewport: DESKTOP, deviceScaleFactor: DPR });
     await page.goto(server.url, { waitUntil: 'networkidle' });
     await page.waitForSelector('#scene');
     await page.waitForTimeout(600);
@@ -66,7 +67,7 @@ async function main() {
 
     const phone = await browser.newPage({
       viewport: PHONE,
-      deviceScaleFactor: 3,
+      deviceScaleFactor: DPR,
       isMobile: true,
       hasTouch: true,
     });

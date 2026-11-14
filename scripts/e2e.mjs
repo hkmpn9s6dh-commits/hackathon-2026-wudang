@@ -64,9 +64,13 @@ async function main() {
     if (m.type() === 'error') errors.push(m.text());
   });
   page.on('pageerror', (e) => errors.push(String(e)));
+  // 只允许访问「被测的那一个源」本身：本地是 127.0.0.1，线上就是它自己的域名。
+  // 任何第三方域名都算外部请求，一条都不许有。
+  const selfOrigin = new URL(url).origin;
   page.on('request', (r) => {
     const u = r.url();
-    if (!u.startsWith('http://127.0.0.1') && !u.startsWith('file://') && !u.startsWith('data:')) foreign.push(u);
+    if (u.startsWith('data:') || u.startsWith('blob:')) return;
+    if (new URL(u).origin !== selfOrigin) foreign.push(u);
   });
   page.on('requestfailed', (r) => errors.push(`request failed: ${r.url()}`));
 
