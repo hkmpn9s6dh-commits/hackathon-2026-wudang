@@ -164,7 +164,7 @@ function frame(now: number): void {
 
   const summit = scene.summit;
   const h = scene.h;
-  const figureHeight = Math.max(84, Math.min(h * 0.132, scene.w * 0.4));
+  const figureHeight = Math.max(76, Math.min(h * 0.115, scene.w * 0.34));
   const groundY = summit.y + figureHeight * 0.02;
 
   ctx.save();

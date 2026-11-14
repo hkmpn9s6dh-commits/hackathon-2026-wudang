@@ -166,19 +166,41 @@ body {
   line-height: 1.4;
 }
 
-/* 歌诀：落款的位置。放在下面，上面才松得开、字才敢放大 */
+/* 歌诀：落款的位置。靠左下，不居中——居中一行小字是海报，不是题跋 */
 .verse {
   position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
-  bottom: 17.5vmin;
-  width: min(48rem, 88vw);
+  left: 6vmin;
+  bottom: 13.5vmin;
+  width: min(30rem, 58vw);
   margin: 0;
-  text-align: center;
+  text-align: left;
   font-size: clamp(14px, 1.9vmin, 18px);
   letter-spacing: 0.1em;
-  line-height: 1.7;
+  line-height: 1.75;
   color: var(--text-soft);
+}
+
+.signature {
+  position: absolute;
+  left: 6vmin;
+  bottom: 6.4vmin;
+  display: flex;
+  align-items: center;
+  gap: 1.2vmin;
+  margin: 0;
+  font-size: clamp(11px, 1.35vmin, 14px);
+  letter-spacing: 0.28em;
+  color: var(--text-faint);
+}
+
+.signature i {
+  display: block;
+  width: 2.2vmin;
+  height: 2.2vmin;
+  min-width: 12px;
+  min-height: 12px;
+  background: var(--seal);
+  opacity: 0.85;
 }
 
 .foot {
@@ -210,25 +232,40 @@ body {
   }
 }
 
+/* 进度不是进度条，是一道山脊：走完一势，就有一座峰填上墨 */
 .ticks {
   display: flex;
-  gap: 0.9vmin;
+  align-items: flex-end;
+  gap: 0.35vmin;
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
 .ticks li {
-  width: 1px;
-  height: 2.1vmin;
-  min-height: 10px;
+  width: 1.1vmin;
+  min-width: 7px;
+  height: 2.6vmin;
+  min-height: 13px;
   background: var(--text-faint);
-  transition: background 320ms ease, transform 320ms ease;
+  clip-path: polygon(50% 0, 100% 100%, 0 100%);
+  opacity: 0.3;
+  transition: background 520ms ease, opacity 520ms ease;
+}
+
+.ticks li:nth-child(3n) {
+  height: 3.4vmin;
+}
+.ticks li:nth-child(4n) {
+  height: 2.2vmin;
+}
+.ticks li:nth-child(7) {
+  height: 4.2vmin;
 }
 
 .ticks li.on {
-  background: var(--seal);
-  transform: scaleY(1.5);
+  background: var(--text);
+  opacity: 0.78;
 }
 
 @media (max-width: 520px) {
@@ -239,6 +276,13 @@ body {
   /* 竖排题名占掉右边一条，副题要让开，不然两个字会叠在一起 */
   .subtitle {
     right: 21vmin;
+  }
+  /* 窄屏上歌诀会折两行，得抬起来给提示让位；落款是装饰，收掉 */
+  .verse {
+    bottom: 22vmin;
+  }
+  .signature {
+    display: none;
   }
 }
 
@@ -257,7 +301,10 @@ body {
     top: 9vmin;
   }
   .verse {
-    bottom: 11vmin;
+    bottom: 12vmin;
+  }
+  .signature {
+    bottom: 5vmin;
   }
   .title,
   .subtitle,

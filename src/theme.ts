@@ -91,6 +91,6 @@ export const THEMES: Record<ThemeId, Theme> = {
 export function themeFrom(search: string): Theme {
   const param = new URLSearchParams(search).get('theme');
   if (param === 'bronze' || param === 'paper') return THEMES[param];
-  // 默认是铜版：这是这一版要去撞的东西。想看旧版加 ?theme=paper
-  return THEMES.bronze;
+  // 默认纸版。铜版留着做实验（?theme=bronze），但不交件——太沉，离仙气更远
+  return THEMES.paper;
 }

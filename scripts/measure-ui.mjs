@@ -80,16 +80,20 @@ async function main() {
         const pick = (s) => document.querySelector(s)?.getBoundingClientRect() ?? null;
         const a = pick('.readout');
         const b = pick('.title');
-        const c = pick('.foot');
+        // 拿真正的字去比，不拿布局容器比：.foot 是全宽 flex 壳子，
+        // 和它相交不代表字压字
+        const c = pick('.hint');
         const d = pick('.verse');
+        const e = pick('.ticks');
         const hit = (r1, r2) =>
           r1 && r2 && !(r1.right < r2.left || r1.left > r2.right || r1.bottom < r2.top || r1.top > r2.bottom);
         return {
           readoutTitle: hit(a, b),
           readoutFoot: hit(a, c),
-          verseFoot: hit(d, c),
+          verseFoot: hit(d, c) || hit(d, e),
+          verseHint: hit(d, e),
           verseReadout: hit(d, a),
-          inside: [a, b, c, d].every(
+          inside: [a, b, c, d, e].every(
             (r) => !r || (r.left >= -1 && r.right <= window.innerWidth + 1 && r.top >= -1 && r.bottom <= window.innerHeight + 1),
           ),
         };
