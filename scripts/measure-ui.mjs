@@ -21,12 +21,13 @@ const CHROME =
   'C:/Users/张一/AppData/Local/ms-playwright/chromium-1248/chrome-win64/chrome.exe';
 
 const TYPO = [
-  { id: 'title', selector: '.title', min: 38, note: '题名' },
-  { id: 'posture', selector: '.posture', min: 36, note: '势名' },
-  { id: 'gloss', selector: '.gloss', min: 13, note: '一句白话' },
-  { id: 'verse', selector: '.verse', min: 10, note: '歌诀' },
-  { id: 'hint', selector: '.hint', min: 11, note: '操作提示' },
-  { id: 'subtitle', selector: '.subtitle', min: 11, note: '副题' },
+  { id: 'title', selector: '.title', min: 44, note: '题名' },
+  { id: 'posture', selector: '.posture', min: 42, note: '势名' },
+  { id: 'gloss', selector: '.gloss', min: 16, note: '一句白话' },
+  { id: 'verse', selector: '.verse', min: 14, note: '歌诀' },
+  { id: 'hint', selector: '.hint', min: 14, note: '操作提示' },
+  { id: 'count', selector: '.count', min: 11, note: '第几势' },
+  { id: 'subtitle', selector: '.subtitle', min: 13, note: '副题' },
 ];
 
 const VIEWPORTS = [
@@ -80,11 +81,21 @@ async function main() {
         const a = pick('.readout');
         const b = pick('.title');
         const c = pick('.foot');
+        const d = pick('.verse');
         const hit = (r1, r2) =>
           r1 && r2 && !(r1.right < r2.left || r1.left > r2.right || r1.bottom < r2.top || r1.top > r2.bottom);
-        return { readoutTitle: hit(a, b), readoutFoot: hit(a, c), inside: [a, b, c].every((r) => !r || (r.left >= -1 && r.right <= window.innerWidth + 1 && r.top >= -1 && r.bottom <= window.innerHeight + 1)) };
+        return {
+          readoutTitle: hit(a, b),
+          readoutFoot: hit(a, c),
+          verseFoot: hit(d, c),
+          verseReadout: hit(d, a),
+          inside: [a, b, c, d].every(
+            (r) => !r || (r.left >= -1 && r.right <= window.innerWidth + 1 && r.top >= -1 && r.bottom <= window.innerHeight + 1),
+          ),
+        };
       });
-      const overlapOk = !overlap.readoutTitle && !overlap.readoutFoot && overlap.inside;
+      const overlapOk =
+        !overlap.readoutTitle && !overlap.readoutFoot && !overlap.verseFoot && !overlap.verseReadout && overlap.inside;
       if (!overlapOk) failed += 1;
       rows.push({ vp: vp.name, id: 'layout', note: '文字块不压不越界', size: 0, min: 0, ok: overlapOk, detail: JSON.stringify(overlap) });
 

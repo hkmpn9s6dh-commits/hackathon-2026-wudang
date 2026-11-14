@@ -3,10 +3,11 @@
  *
  * 不画五官，只画一身道袍的剪影——一是不抢山的戏，二是缩到 130 像素还立得住。
  * 十三势的差别全在肩、肘、袖口拖出来的那几根线上。
+ *
+ * 铜版里她有一道极细的暖金边：不是描边，是光从背后擦过剪影的边缘。
  */
 
 import type { Pose } from './postures';
-import { INK } from './scene';
 
 const HEAD_R = 5.6;
 const SHOULDER_Y = 15.6;
@@ -16,6 +17,12 @@ const HIP_Y = 44;
 const UPPER_ARM = 14.6;
 const FOREARM = 13.2;
 
+export interface FigureColors {
+  ink: string;
+  /** 背后擦过的那道边；null 表示不画 */
+  edge: string | null;
+}
+
 type Pt = [number, number];
 
 export function drawFigure(
@@ -24,8 +31,29 @@ export function drawFigure(
   x: number,
   groundY: number,
   height: number,
+  colors: FigureColors,
 ): void {
   const s = height / 100;
+
+  if (colors.edge) {
+    // 第一遍：稍大一圈、只填边的颜色。第二遍盖上去，露出来的就是一道边光。
+    ctx.save();
+    ctx.translate(x, groundY - height * 0.972);
+    ctx.scale(s * 1.028, s * 1.02);
+    paint(ctx, pose, colors.edge);
+    ctx.restore();
+  }
+
+  ctx.save();
+  // 坐标是「头顶为 0、脚底为 97」，所以要把 groundY 换算回头顶
+  ctx.translate(x, groundY - height * 0.972);
+  ctx.scale(s, s);
+  paint(ctx, pose, colors.ink);
+  ctx.restore();
+}
+
+/** 在「头顶 0、脚底 97」的局部坐标里把整个人画出来。 */
+function paint(ctx: CanvasRenderingContext2D, pose: Pose, fill: string): void {
   const sink = pose.sink * 5.2;
   const lean = (pose.lean * Math.PI) / 180;
   const hip: Pt = [0, HIP_Y + sink];
@@ -39,14 +67,10 @@ export function drawFigure(
   const shoulderL = spin([-SHOULDER_HALF, SHOULDER_Y]);
   const shoulderR = spin([SHOULDER_HALF, SHOULDER_Y]);
 
-  ctx.save();
-  // 坐标是「头顶为 0、脚底为 97」，所以要把 groundY 换算回头顶
-  ctx.translate(x, groundY - height * 0.972);
-  ctx.scale(s, s);
   ctx.lineCap = 'round';
   ctx.lineJoin = 'round';
-  ctx.fillStyle = INK;
-  ctx.strokeStyle = INK;
+  ctx.fillStyle = fill;
+  ctx.strokeStyle = fill;
 
   const footHalf = 5.2 * pose.stance + sink * 0.7;
 
@@ -114,8 +138,6 @@ export function drawFigure(
   ctx.quadraticCurveTo(head[0] - HEAD_R * 1.55, head[1] + 4.6, head[0] - HEAD_R * 1.05, head[1] + 8.2);
   ctx.lineWidth = 1.5;
   ctx.stroke();
-
-  ctx.restore();
 }
 
 function arm(ctx: CanvasRenderingContext2D, shoulder: Pt, angles: [number, number]): void {

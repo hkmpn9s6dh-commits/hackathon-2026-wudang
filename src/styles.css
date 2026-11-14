@@ -6,11 +6,18 @@
 }
 
 :root {
-  --ink: #1b1916;
-  --ink-soft: rgba(27, 25, 22, 0.62);
-  --ink-faint: rgba(27, 25, 22, 0.38);
-  --paper: #f2ece0;
-  --vermilion: #a33a2c;
+  /* 主题在 main.ts 里按 ?theme= 写进来，这里是纸墨版的兜底 */
+  --text: #1b1916;
+  --text-soft: rgba(27, 25, 22, 0.62);
+  --text-faint: rgba(27, 25, 22, 0.38);
+  --ground: #f5efe3;
+  --seal: #a33a2c;
+  --seal-ink: #f7f1e5;
+  --ink: var(--text);
+  --ink-soft: var(--text-soft);
+  --ink-faint: var(--text-faint);
+  --paper: var(--ground);
+  --vermilion: var(--seal);
   --serif: 'Chaoyuan Serif', 'Noto Serif SC', 'Songti SC', 'SimSun', serif;
 }
 
@@ -22,8 +29,8 @@ html,
 body {
   margin: 0;
   height: 100%;
-  background: var(--paper);
-  color: var(--ink);
+  background: var(--ground);
+  color: var(--text);
   font-family: var(--serif);
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
@@ -67,9 +74,9 @@ body {
   align-items: center;
   gap: 0.6vmin;
   padding: 1.5vmin 1.1vmin;
-  background: var(--vermilion);
-  color: #f7f1e5;
-  font-size: clamp(13px, 1.9vmin, 19px);
+  background: var(--seal);
+  color: var(--seal-ink);
+  font-size: clamp(14px, 2vmin, 21px);
   line-height: 1;
   letter-spacing: 0.1em;
   box-shadow: 0 0 0 1px rgba(163, 58, 44, 0.3);
@@ -101,23 +108,23 @@ body {
 .title {
   right: 5.6vmin;
   top: 6vmin;
-  font-size: clamp(40px, 6.4vmin, 76px);
+  font-size: clamp(44px, 7vmin, 84px);
   letter-spacing: 0.18em;
 }
 
 .subtitle {
   right: 14.4vmin;
   top: 6.8vmin;
-  font-size: clamp(12px, 1.5vmin, 16px);
-  letter-spacing: 0.34em;
+  font-size: clamp(14px, 1.75vmin, 19px);
+  letter-spacing: 0.32em;
   color: var(--ink-soft);
 }
 
 .meta {
   right: 18.2vmin;
   top: 6.8vmin;
-  font-size: clamp(9px, 1.1vmin, 12px);
-  letter-spacing: 0.26em;
+  font-size: clamp(11px, 1.3vmin, 14px);
+  letter-spacing: 0.22em;
   color: var(--ink-faint);
 }
 
@@ -126,25 +133,25 @@ body {
   position: absolute;
   left: 50%;
   transform: translateX(-50%);
-  width: min(40rem, 56vw);
-  top: 17.5vmin;
+  width: min(44rem, 52vw);
+  top: 15.5vmin;
   text-align: center;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 1.1vmin;
+  gap: 1.6vmin;
 }
 
 .count {
   margin: 0;
-  font-size: clamp(9px, 1.2vmin, 12px);
-  letter-spacing: 0.4em;
+  font-size: clamp(11px, 1.4vmin, 15px);
+  letter-spacing: 0.38em;
   color: var(--ink-faint);
 }
 
 .posture {
   margin: 0;
-  font-size: clamp(38px, 6.6vmin, 68px);
+  font-size: clamp(42px, 7.4vmin, 78px);
   font-weight: 500;
   line-height: 1;
   letter-spacing: 0.08em;
@@ -152,20 +159,25 @@ body {
 
 .gloss {
   margin: 0;
-  font-size: clamp(14px, 1.95vmin, 21px);
-  letter-spacing: 0.16em;
+  font-size: clamp(16px, 2.25vmin, 24px);
+  letter-spacing: 0.14em;
   color: var(--ink-soft);
   line-height: 1.4;
 }
 
+/* 歌诀：落款的位置。放在下面，上面才松得开、字才敢放大 */
 .verse {
-  margin: 1.4vmin 0 0;
-  font-size: clamp(11px, 1.45vmin, 15px);
-  letter-spacing: 0.12em;
-  color: var(--ink-faint);
-  line-height: 1.5;
-  max-width: 32em;
-  padding: 0 6vmin;
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: 17.5vmin;
+  width: min(48rem, 88vw);
+  margin: 0;
+  text-align: center;
+  font-size: clamp(14px, 1.9vmin, 18px);
+  letter-spacing: 0.1em;
+  line-height: 1.7;
+  color: var(--text-soft);
 }
 
 .foot {
@@ -181,9 +193,9 @@ body {
 
 .hint {
   margin: 0;
-  font-size: clamp(12px, 1.65vmin, 16px);
-  letter-spacing: 0.44em;
-  color: var(--ink);
+  font-size: clamp(14px, 1.9vmin, 18px);
+  letter-spacing: 0.4em;
+  color: var(--text);
   animation: breathe 3.6s ease-in-out infinite;
 }
 
@@ -209,12 +221,12 @@ body {
   width: 1px;
   height: 2.1vmin;
   min-height: 10px;
-  background: var(--ink-faint);
+  background: var(--text-faint);
   transition: background 320ms ease, transform 320ms ease;
 }
 
 .ticks li.on {
-  background: var(--vermilion);
+  background: var(--seal);
   transform: scaleY(1.5);
 }
 
@@ -230,7 +242,10 @@ body {
 
 @media (max-height: 560px) and (orientation: landscape) {
   .readout {
-    top: 10vmin;
+    top: 9vmin;
+  }
+  .verse {
+    bottom: 11vmin;
   }
   .title,
   .subtitle,

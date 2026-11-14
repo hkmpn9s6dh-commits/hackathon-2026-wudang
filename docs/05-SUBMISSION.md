@@ -16,7 +16,7 @@
 | 赛道 | 四 · 数字文创 |
 | 形态 | 竖屏网页互动作品（景区竖屏装置 / 手机扫码两用） |
 | 时长 | 一轮 13 口气，约 3 分钟；随时可停 |
-| 线上地址 | https://hkmpn9s6dh-commits.github.io/hackathon-2026-wudang/ |
+| 线上地址 | https://hkmpn9s6dh-commits.github.io/hackathon-2026-wudang/ （默认铜版；纸版加 `?theme=paper`） |
 | 源码 | https://github.com/hkmpn9s6dh-commits/hackathon-2026-wudang （MIT） |
 | 虚拟人 | 「和」，武当山门下少年道童（设定书见 `03-VIRTUAL-HUMAN.md`） |
 

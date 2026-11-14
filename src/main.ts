@@ -5,6 +5,7 @@ import { countLabel, hintFor, shownIndex } from './labels';
 import { POSTURES, WUJI, blendPose, type Pose } from './postures';
 import { Scene, type Frame } from './scene';
 import { Breath } from './state';
+import { themeFrom } from './theme';
 
 const stage = requireEl<HTMLElement>('#stage');
 const canvas = requireEl<HTMLCanvasElement>('#scene');
@@ -27,7 +28,17 @@ const maybeCtx = canvas.getContext('2d');
 if (!maybeCtx) throw new Error('canvas 2d 上下文拿不到');
 const ctx: CanvasRenderingContext2D = maybeCtx;
 
-const scene = new Scene();
+const theme = themeFrom(window.location.search);
+document.documentElement.dataset.theme = theme.id;
+const css = document.documentElement.style;
+css.setProperty('--text', theme.text);
+css.setProperty('--text-soft', theme.textSoft);
+css.setProperty('--text-faint', theme.textFaint);
+css.setProperty('--seal', theme.seal);
+css.setProperty('--seal-ink', theme.sealInk);
+css.setProperty('--ground', theme.base[1]);
+
+const scene = new Scene(theme);
 const breath = new Breath();
 
 let lastIndex = -1;
@@ -125,7 +136,7 @@ function drawRing(now: number, centerX: number, centerY: number, radius: number)
   ctx.save();
   ctx.translate(centerX, centerY);
   ctx.rotate(spin);
-  ctx.strokeStyle = `rgba(27,25,22,${alpha})`;
+  ctx.strokeStyle = theme.id === 'bronze' ? `rgba(226,186,116,${alpha * 0.9})` : `rgba(27,25,22,${alpha})`;
   ctx.lineWidth = 1;
   const gaps = done ? [1] : [0.36, 0.3, 0.24];
   let start = 0;
@@ -162,7 +173,10 @@ function frame(now: number): void {
 
   // 吸气时人稍微沉下去一点，是「炁沉丹田」而不是人在飘
   const settle = figureHeight * 0.012 * f.breath;
-  drawFigure(ctx, poseNow(), summit.x, groundY + settle, figureHeight);
+  drawFigure(ctx, poseNow(), summit.x, groundY + settle, figureHeight, {
+    ink: theme.ink,
+    edge: theme.inkEdge,
+  });
 
   stage.dataset.index = String(breath.index);
   stage.dataset.phase = breath.phase;

@@ -3,16 +3,12 @@
  *
  * 整幅景一次性画进离屏底图，每帧只做位移与云。所有随机都来自固定种子：
  * 换一台机器，还是同一座山。
+ *
+ * 材质由 Theme 决定：纸墨（paper）或暗铜鎏金（bronze）。同一座山，两种物。
  */
 
 import { mulberry32, range } from './rng';
-
-export const INK = '#1b1916';
-export const INK_SOFT = '#4a453d';
-export const PAPER = '#f2ece0';
-export const PAPER_DEEP = '#e7ddcc';
-export const VERMILION = '#a33a2c';
-export const GOLD = '#b8894a';
+import type { Theme } from './theme';
 
 const SAMPLES = 321;
 const SEED = 0x5a17c0de;
@@ -48,6 +44,11 @@ export class Scene {
   #wisps: Wisp[] = [];
   #base: HTMLCanvasElement | null = null;
   #summit = { x: 0, y: 0 };
+  #theme: Theme;
+
+  constructor(theme: Theme) {
+    this.#theme = theme;
+  }
 
   resize(ctx: CanvasRenderingContext2D, w: number, h: number): void {
     if (w === this.#w && h === this.#h) return;
@@ -95,6 +96,16 @@ export class Scene {
     ctx.clearRect(0, 0, w, h);
     const lift = -h * 0.004 * ease(frame.breath);
     ctx.drawImage(base, 0, lift, w, h);
+
+    // 吸气把铜面擦亮一点。只有 3%，但铜是会被擦亮的，这不是特效，是材质。
+    if (this.#theme.id === 'bronze') {
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.fillStyle = `rgba(226,186,116,${0.03 * ease(frame.breath)})`;
+      ctx.fillRect(0, 0, w, h);
+      ctx.restore();
+    }
+
     this.#clouds(ctx, frame);
   }
 
@@ -107,36 +118,54 @@ export class Scene {
     if (!c) return off;
     c.scale(dpr, dpr);
 
-    this.#paper(c, w, h);
+    this.#ground(c, w, h);
     for (let i = 0; i < this.#ranges.length; i += 1) {
       this.#range(c, i, w, h);
-      if (i === 1) this.#mist(c, w, h, 0.655, 0.08, 0.55);
-      if (i === 2) this.#mist(c, w, h, 0.772, 0.075, 0.42);
+      if (this.#theme.id === 'paper') {
+        if (i === 1) this.#mist(c, w, h, 0.655, 0.08, 0.55);
+        if (i === 2) this.#mist(c, w, h, 0.772, 0.075, 0.42);
+      }
     }
     this.#hall(c, w, h);
     this.#ledge(c, w, h);
-    const bottom = c.createLinearGradient(0, h * 0.93, 0, h);
-    bottom.addColorStop(0, 'rgba(27,25,22,0)');
-    bottom.addColorStop(1, 'rgba(27,25,22,0.12)');
-    c.fillStyle = bottom;
-    c.fillRect(0, h * 0.93, w, h * 0.07);
     this.#birds(c, w, h);
     this.#grain(c, w, h, ctx);
     return off;
   }
 
-  #paper(c: CanvasRenderingContext2D, w: number, h: number): void {
+  /** 底：纸，或者氧化的铜面。 */
+  #ground(c: CanvasRenderingContext2D, w: number, h: number): void {
+    const t = this.#theme;
     const g = c.createLinearGradient(0, 0, 0, h);
-    g.addColorStop(0, '#faf6ec');
-    g.addColorStop(0.45, '#f5efe3');
-    g.addColorStop(1, '#eee5d5');
+    g.addColorStop(0, t.base[0]);
+    g.addColorStop(0.45, t.base[1]);
+    g.addColorStop(1, t.base[2]);
     c.fillStyle = g;
     c.fillRect(0, 0, w, h);
 
+    if (t.id === 'bronze') {
+      // 夜铜：只在山脊那一线有一点暖光，其余压到近黑
+      // 只在金顶背后留一点光，不做横向的暖带——横带一出现，山就又像沙丘了
+      const behind = c.createRadialGradient(w * 0.5, h * 0.58, 0, w * 0.5, h * 0.58, h * 0.42);
+      behind.addColorStop(0, 'rgba(120,88,44,0.22)');
+      behind.addColorStop(0.45, 'rgba(96,70,34,0.07)');
+      behind.addColorStop(1, 'rgba(96,70,34,0)');
+      c.fillStyle = behind;
+      c.fillRect(0, 0, w, h);
+      // 四角压暗，铜器才有厚度
+      const vig = c.createRadialGradient(w * 0.5, h * 0.55, h * 0.14, w * 0.5, h * 0.55, h * 0.95);
+      vig.addColorStop(0, 'rgba(0,0,0,0)');
+      vig.addColorStop(0.6, 'rgba(0,0,0,0.24)');
+      vig.addColorStop(1, 'rgba(0,0,0,0.66)');
+      c.fillStyle = vig;
+      c.fillRect(0, 0, w, h);
+    }
+
+    // 金顶上方那抹光
     const sky = c.createRadialGradient(w * 0.5, h * 0.44, 0, w * 0.5, h * 0.44, h * 0.5);
-    sky.addColorStop(0, 'rgba(198,158,104,0.1)');
-    sky.addColorStop(0.6, 'rgba(198,158,104,0.03)');
-    sky.addColorStop(1, 'rgba(198,158,104,0)');
+    sky.addColorStop(0, `rgba(${t.glow},${t.id === 'bronze' ? 0.16 : 0.1})`);
+    sky.addColorStop(0.6, `rgba(${t.glow},${t.id === 'bronze' ? 0.05 : 0.03})`);
+    sky.addColorStop(1, `rgba(${t.glow},0)`);
     c.fillStyle = sky;
     c.fillRect(0, 0, w, h);
   }
@@ -144,6 +173,7 @@ export class Scene {
   #range(c: CanvasRenderingContext2D, layer: number, w: number, h: number): void {
     const r = this.#ranges[layer];
     if (!r) return;
+    const t = this.#theme;
     const pts: [number, number][] = [];
     for (let i = 0; i < SAMPLES; i += 1) {
       const u = i / (SAMPLES - 1);
@@ -156,97 +186,81 @@ export class Scene {
     for (const p of pts) c.lineTo(p[0], p[1]);
     c.lineTo(pts[pts.length - 1]?.[0] ?? w, h + 10);
     c.closePath();
-    c.fillStyle = `rgba(27,25,22,${r.alpha})`;
+    c.fillStyle = `rgba(${t.range},${r.alpha})`;
     c.fill();
 
-    // 山脚化进雾里，别让剪影变成一块硬纸板
+    if (t.id === 'bronze') {
+      // 受光的只有边。而且不是均匀的一条线：陡处亮、缓处断，越远越弱。
+      // 均匀的细线会读成等高线（另一种套路），断断续续才像反光。
+      const base = [0.1, 0.2, 0.34][layer] ?? 0.2;
+      let maxDy = 0;
+      for (let i = 1; i < pts.length; i += 1) {
+        const a = pts[i - 1]!;
+        const b = pts[i]!;
+        maxDy = Math.max(maxDy, Math.abs(b[1] - a[1]));
+      }
+      c.lineWidth = 1.1;
+      c.lineCap = 'round';
+      for (let i = 1; i < pts.length; i += 1) {
+        const a = pts[i - 1]!;
+        const b = pts[i]!;
+        const dy = Math.abs(b[1] - a[1]) / (maxDy || 1);
+        // 只有陡坡受光；再乘一个横向的位置权重，山顶附近最亮
+        const cx = (a[0] + b[0]) / 2 / w;
+        const around = 1 - Math.min(1, Math.abs(cx - 0.5) / 0.42) ** 1.6;
+        const alpha = base * (0.06 + 0.94 * dy ** 1.5) * (0.25 + 0.75 * around);
+        if (alpha < 0.01) continue;
+        c.beginPath();
+        c.moveTo(a[0], a[1]);
+        c.lineTo(b[0], b[1]);
+        c.strokeStyle = `rgba(${t.ridge},${alpha})`;
+        c.stroke();
+      }
+    }
+
+    // 山脚化开：纸上用擦，铜上用底色盖（深底上擦不干净）
     const top = Math.min(...pts.map((p) => p[1]));
-    c.globalCompositeOperation = 'destination-out';
-    const fade = c.createLinearGradient(0, top, 0, h * (r.baseY + 0.02));
-    fade.addColorStop(0, 'rgba(0,0,0,0)');
-    fade.addColorStop(0.55, 'rgba(0,0,0,0)');
-    fade.addColorStop(1, 'rgba(0,0,0,0.55)');
-    c.fillStyle = fade;
-    c.fillRect(0, top, w, h);
-    c.restore();
-  }
-
-  #mist(c: CanvasRenderingContext2D, w: number, h: number, at: number, height: number, alpha: number): void {
-    const g = c.createLinearGradient(0, h * at, 0, h * (at + height));
-    g.addColorStop(0, 'rgba(247,242,232,0)');
-    g.addColorStop(0.45, `rgba(247,242,232,${alpha})`);
-    g.addColorStop(1, 'rgba(247,242,232,0)');
-    c.fillStyle = g;
-    c.fillRect(0, h * at, w, h * height);
-  }
-
-  /**
-   * 金顶：脚下那一小块岩。
-   *
-   * 只画人站得住的那一点。山有多高，交给雾、交给题字、交给看画的人自己补。
-   */
-  #ledge(c: CanvasRenderingContext2D, w: number, h: number): void {
-    const ax = w * 0.5;
-    const ay = h * 0.6;
-    const half = w * 0.046;
-
-    c.save();
-    // 岩：一个上头平、下头收的深色小块
-    c.beginPath();
-    c.moveTo(ax - half, ay);
-    c.quadraticCurveTo(ax - half * 0.55, ay - h * 0.003, ax - half * 0.2, ay - h * 0.004);
-    c.quadraticCurveTo(ax + half * 0.3, ay - h * 0.005, ax + half * 0.86, ay + h * 0.002);
-    c.quadraticCurveTo(ax + half * 0.5, ay + h * 0.014, ax + half * 0.18, ay + h * 0.02);
-    c.quadraticCurveTo(ax - half * 0.4, ay + h * 0.026, ax - half, ay);
-    c.closePath();
-    const g = c.createLinearGradient(0, ay - h * 0.006, 0, ay + h * 0.028);
-    g.addColorStop(0, 'rgba(20,18,15,0.66)');
-    g.addColorStop(0.5, 'rgba(20,18,15,0.22)');
-    g.addColorStop(1, 'rgba(20,18,15,0)');
-    c.fillStyle = g;
-    c.fill();
-
-    // 顶面一笔更实，边才锋利
-    c.beginPath();
-    c.moveTo(ax - half, ay);
-    c.quadraticCurveTo(ax - half * 0.4, ay - h * 0.007, ax + half * 0.86, ay + h * 0.002);
-    c.strokeStyle = 'rgba(18,16,13,0.66)';
-    c.lineWidth = 1.6;
-    c.lineCap = 'round';
-    c.stroke();
-
-    // 散墨
-    const rng = mulberry32(SEED ^ 0x4c1);
-    for (let i = 0; i < 16; i += 1) {
-      const px = ax + (rng() - 0.5) * w * 0.12;
-      const py = ay + h * (0.004 + rng() * 0.026);
-      c.beginPath();
-      c.ellipse(px, py, w * (0.0005 + rng() * 0.0012), h * (0.0006 + rng() * 0.0013), 0, 0, Math.PI * 2);
-      c.fillStyle = `rgba(20,18,15,${0.04 + rng() * 0.12})`;
-      c.fill();
+    if (t.fadeMode === 'erase') {
+      c.globalCompositeOperation = 'destination-out';
+      const fade = c.createLinearGradient(0, top, 0, h * (r.baseY + 0.02));
+      fade.addColorStop(0, 'rgba(0,0,0,0)');
+      fade.addColorStop(0.55, 'rgba(0,0,0,0)');
+      fade.addColorStop(1, 'rgba(0,0,0,0.55)');
+      c.fillStyle = fade;
+      c.fillRect(0, top, w, h);
+    } else {
+      const fade = c.createLinearGradient(0, h * (r.baseY - 0.06), 0, h * (r.baseY + 0.1));
+      fade.addColorStop(0, 'rgba(10,8,6,0)');
+      fade.addColorStop(0.5, 'rgba(10,8,6,0.62)');
+      fade.addColorStop(1, t.fade);
+      c.fillStyle = fade;
+      // 一直铺到画布底：只铺一段会留下一条横向硬边
+      c.fillRect(0, h * (r.baseY - 0.06), w, h * 2);
     }
     c.restore();
   }
 
-  /** 某一层山在 u 处的屏幕高度，给殿和别的小东西落脚。 */
-  #ridgeY(layer: number, u: number): number {
-    const r = this.#ranges[layer];
-    if (!r) return this.#h;
-    const pos = Math.min(SAMPLES - 1, Math.max(0, u * (SAMPLES - 1)));
-    const i = Math.floor(pos);
-    const f = pos - i;
-    const a = r.profile[i] ?? 0;
-    const b = r.profile[i + 1] ?? a;
-    return this.#h * (r.baseY - (a + (b - a) * f) * r.height);
+  #mist(c: CanvasRenderingContext2D, w: number, h: number, at: number, height: number, alpha: number): void {
+    const t = this.#theme;
+    const rgb = t.id === 'bronze' ? '226,190,132' : '247,242,232';
+    const a = t.id === 'bronze' ? alpha * 0.55 : alpha;
+    const g = c.createLinearGradient(0, h * at, 0, h * (at + height));
+    g.addColorStop(0, `rgba(${rgb},0)`);
+    g.addColorStop(0.45, `rgba(${rgb},${a})`);
+    g.addColorStop(1, `rgba(${rgb},0)`);
+    c.fillStyle = g;
+    c.fillRect(0, h * at, w, h * height);
   }
 
   #hall(c: CanvasRenderingContext2D, w: number, h: number): void {
+    const t = this.#theme;
     const x = w * 0.335;
     const y = this.#ridgeY(1, 0.335) + h * 0.004;
     const s = Math.max(0.55, Math.min(1.15, h / 1300));
     c.save();
-    c.fillStyle = 'rgba(22,19,16,0.52)';
-    c.strokeStyle = 'rgba(22,19,16,0.52)';
+    const hallInk = t.id === 'bronze' ? `rgba(${t.ridge},0.62)` : `rgba(${t.hall},0.55)`;
+    c.fillStyle = hallInk;
+    c.strokeStyle = hallInk;
     c.lineWidth = 1.1 * s;
     c.fillRect(x - 24 * s, y - 3.5 * s, 48 * s, 3.5 * s);
     c.fillRect(x - 15 * s, y - 16 * s, 30 * s, 13 * s);
@@ -266,11 +280,72 @@ export class Scene {
     c.restore();
   }
 
+  /** 某一层山在 u 处的屏幕高度。 */
+  #ridgeY(layer: number, u: number): number {
+    const r = this.#ranges[layer];
+    if (!r) return this.#h;
+    const pos = Math.min(SAMPLES - 1, Math.max(0, u * (SAMPLES - 1)));
+    const i = Math.floor(pos);
+    const f = pos - i;
+    const a = r.profile[i] ?? 0;
+    const b = r.profile[i + 1] ?? a;
+    return this.#h * (r.baseY - (a + (b - a) * f) * r.height);
+  }
+
+  /**
+   * 金顶：脚下那一小块岩。
+   *
+   * 只画人站得住的那一点。山有多高，交给雾、交给题字、交给看画的人自己补。
+   */
+  #ledge(c: CanvasRenderingContext2D, w: number, h: number): void {
+    const t = this.#theme;
+    const ax = w * 0.5;
+    const ay = h * 0.6;
+    const half = w * 0.046;
+    const dark = t.id === 'bronze' ? '6,5,3' : '20,18,15';
+
+    c.save();
+    c.beginPath();
+    c.moveTo(ax - half, ay);
+    c.quadraticCurveTo(ax - half * 0.55, ay - h * 0.003, ax - half * 0.2, ay - h * 0.004);
+    c.quadraticCurveTo(ax + half * 0.3, ay - h * 0.005, ax + half * 0.86, ay + h * 0.002);
+    c.quadraticCurveTo(ax + half * 0.5, ay + h * 0.014, ax + half * 0.18, ay + h * 0.02);
+    c.quadraticCurveTo(ax - half * 0.4, ay + h * 0.026, ax - half, ay);
+    c.closePath();
+    const g = c.createLinearGradient(0, ay - h * 0.006, 0, ay + h * 0.028);
+    g.addColorStop(0, `rgba(${dark},0.74)`);
+    g.addColorStop(0.5, `rgba(${dark},0.26)`);
+    g.addColorStop(1, `rgba(${dark},0)`);
+    c.fillStyle = g;
+    c.fill();
+
+    // 顶面那一笔：铜版上这是被磨亮的边，所以用暖金而不是黑
+    c.beginPath();
+    c.moveTo(ax - half, ay);
+    c.quadraticCurveTo(ax - half * 0.4, ay - h * 0.007, ax + half * 0.86, ay + h * 0.002);
+    c.strokeStyle = t.id === 'bronze' ? `rgba(${t.ridge},0.5)` : 'rgba(18,16,13,0.66)';
+    c.lineWidth = 1.6;
+    c.lineCap = 'round';
+    c.stroke();
+
+    const rng = mulberry32(SEED ^ 0x4c1);
+    for (let i = 0; i < 16; i += 1) {
+      const px = ax + (rng() - 0.5) * w * 0.12;
+      const py = ay + h * (0.004 + rng() * 0.026);
+      c.beginPath();
+      c.ellipse(px, py, w * (0.0005 + rng() * 0.0012), h * (0.0006 + rng() * 0.0013), 0, 0, Math.PI * 2);
+      c.fillStyle = `rgba(${dark},${0.04 + rng() * 0.12})`;
+      c.fill();
+    }
+    c.restore();
+  }
+
   /** 几只鸟。天空空得太干净时，一点活气就够了。 */
   #birds(c: CanvasRenderingContext2D, w: number, h: number): void {
+    const t = this.#theme;
     const rng = mulberry32(SEED ^ 0xb1d);
     c.save();
-    c.strokeStyle = 'rgba(24,21,18,0.4)';
+    c.strokeStyle = t.id === 'bronze' ? 'rgba(226,190,132,0.42)' : 'rgba(24,21,18,0.4)';
     c.lineCap = 'round';
     for (let i = 0; i < 5; i += 1) {
       const x = w * (0.15 + rng() * 0.2);
@@ -306,7 +381,7 @@ export class Scene {
     const pattern = target.createPattern(tile, 'repeat');
     if (!pattern) return;
     c.save();
-    c.globalAlpha = 0.04;
+    c.globalAlpha = this.#theme.grain;
     c.fillStyle = pattern;
     c.fillRect(0, 0, w, h);
     c.restore();
@@ -315,16 +390,17 @@ export class Scene {
   #clouds(ctx: CanvasRenderingContext2D, frame: Frame): void {
     const { w, h } = this;
     const e = ease(frame.breath);
+    const rgb = this.#theme.cloud;
     ctx.save();
     for (const c of this.#wisps) {
       const x = (((c.x + frame.t * c.drift) % 1.3) + 1.3) % 1.3;
       const px = (x - 0.15) * w;
       const py = c.y * h - e * h * 0.06 * c.lift;
       const g = ctx.createRadialGradient(px, py, 0, px, py, Math.max(1, c.rx * w));
-      const a = c.alpha * (0.7 + 0.45 * e);
-      g.addColorStop(0, `rgba(255,253,246,${a})`);
-      g.addColorStop(0.55, `rgba(255,253,246,${a * 0.4})`);
-      g.addColorStop(1, 'rgba(255,253,246,0)');
+      const a = c.alpha * (0.7 + 0.45 * e) * (this.#theme.id === 'bronze' ? 0.55 : 1);
+      g.addColorStop(0, `rgba(${rgb},${a})`);
+      g.addColorStop(0.55, `rgba(${rgb},${a * 0.4})`);
+      g.addColorStop(1, `rgba(${rgb},0)`);
       ctx.fillStyle = g;
       ctx.beginPath();
       ctx.ellipse(px, py, Math.max(1, c.rx * w), Math.max(1, c.ry * h), 0, 0, Math.PI * 2);
